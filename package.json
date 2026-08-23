@@ -15,11 +15,6 @@
     "node": ">=22",
     "pnpm": ">=10"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

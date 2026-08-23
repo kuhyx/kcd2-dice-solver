@@ -1,0 +1,13 @@
+# pnpm 10 reads both of these from here; the old package.json "pnpm" field is
+# ignored outright (it warns and moves on), so this file is the only place they
+# take effect.
+
+# esbuild ships a postinstall that fetches its platform binary. Without an
+# explicit approval pnpm refuses to run it and `pnpm install` exits non-zero.
+allowBuilds:
+  esbuild: true
+
+# deploy_build.sh runs from a systemd unit, which has no TTY. Left at its
+# default, pnpm aborts rather than reinstall an existing node_modules, so the
+# unit fails on every run after the first.
+confirmModulesPurge: false
