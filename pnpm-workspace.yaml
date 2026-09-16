@@ -7,7 +7,8 @@
 allowBuilds:
   esbuild: true
 
-# deploy_build.sh runs from a systemd unit, which has no TTY. Left at its
-# default, pnpm aborts rather than reinstall an existing node_modules, so the
-# unit fails on every run after the first.
-confirmModulesPurge: false
+# deploy_build.sh runs from a systemd unit, which has no TTY. pnpm 11 needed
+# `confirmModulesPurge: false` here or it aborted rather than reinstall an
+# existing node_modules; pnpm 12 removed the setting (and rejects it as
+# unrecognized) -- an install over an existing node_modules with stdin closed
+# was verified to complete on the 12.4.2 bump.
