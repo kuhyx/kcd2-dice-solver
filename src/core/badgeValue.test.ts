@@ -7,7 +7,7 @@
  * as a smaller one — rather than pinning arbitrary point totals.
  */
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { BADGES_BY_ID, DEFAULT_FORMATION_VALUES } from "../data/badges.ts";
 import type { Badge } from "../data/badges.ts";
 import { DICE_BY_ID } from "../data/dice.ts";
@@ -19,7 +19,7 @@ import {
   rankValue,
   singleCharge,
 } from "./badgeBaseline.ts";
-import type { BadgeContext } from "./badgeBaseline.ts";
+import type { BadgeContext, BadgeValuation } from "./badgeBaseline.ts";
 import { NO_CHARGES, DEFAULT_POLICY } from "./simulate.ts";
 import type { InventoryEntry } from "./searchGroups.ts";
 
@@ -109,12 +109,41 @@ describe("singleCharge", () => {
   });
 });
 
+/**
+ * Budget for valuing the whole badge catalogue once.
+ *
+ * The sweep is the costliest work in this file: a Monte-Carlo turn simulation
+ * per turn-level badge plus a full dice search per scoring badge. Measured with
+ * coverage on: ~2 s when this file runs alone, 13.9 s inside the full suite
+ * under `capped.sh` before the worker pool was sized to the CPU quota
+ * (vitest.workers.mjs). That starved run is the worst case this budget covers:
+ * 30 s is about twice it, and well clear of the 10 s hook default.
+ */
+const CATALOGUE_TIMEOUT_MS = 30_000;
+
 describe("valueBadge", () => {
+  // Every whole-catalogue property below reads this one sweep; valuing each
+  // badge again per test only repeated identical, seeded simulations.
+  const valuations = new Map<string, BadgeValuation>();
+  const valued = (id: string): BadgeValuation => {
+    const found = valuations.get(id);
+    if (!found) {
+      throw new Error(`badge not valued: ${id}`);
+    }
+    return found;
+  };
+
+  beforeAll(() => {
+    for (const [id, entry] of BADGES_BY_ID) {
+      valuations.set(id, valueBadge(entry, context, baseline));
+    }
+  }, CATALOGUE_TIMEOUT_MS);
+
   it("never values an optional badge below zero", () => {
     // A badge you may simply decline to use cannot cost you points, so a
     // negative estimate would be a modelling error, not a finding.
-    for (const id of BADGES_BY_ID.keys()) {
-      const valuation = valueBadge(badge(id), context, baseline);
+    expect(valuations.size).toBe(BADGES_BY_ID.size);
+    for (const valuation of valuations.values()) {
       if (valuation.pointsPerGame !== null) {
         expect(valuation.pointsPerGame).toBeGreaterThanOrEqual(0);
       }
@@ -122,8 +151,9 @@ describe("valueBadge", () => {
   });
 
   it("gives every badge a stated reason", () => {
-    for (const id of BADGES_BY_ID.keys()) {
-      expect(valueBadge(badge(id), context, baseline).reason.length).toBeGreaterThan(10);
+    expect(valuations.size).toBe(BADGES_BY_ID.size);
+    for (const valuation of valuations.values()) {
+      expect(valuation.reason.length).toBeGreaterThan(10);
     }
   });
 
@@ -139,14 +169,14 @@ describe("valueBadge", () => {
   });
 
   it("ranks a higher tier at least as high as a lower one", () => {
-    const tin = valueBadge(badge("tin_might"), context, baseline).pointsPerGame ?? 0;
-    const gold = valueBadge(badge("gold_might"), context, baseline).pointsPerGame ?? 0;
+    const tin = valued("tin_might").pointsPerGame ?? 0;
+    const gold = valued("gold_might").pointsPerGame ?? 0;
     expect(gold).toBeGreaterThanOrEqual(tin);
   });
 
   it("returns a re-optimised loadout for scoring badges only", () => {
-    expect(valueBadge(badge("gold_emperors"), context, baseline).dice).toHaveLength(6);
-    expect(valueBadge(badge("gold_might"), context, baseline).dice).toBeNull();
+    expect(valued("gold_emperors").dice).toHaveLength(6);
+    expect(valued("gold_might").dice).toBeNull();
   });
 
   it("measures its own baseline when not given one", () => {

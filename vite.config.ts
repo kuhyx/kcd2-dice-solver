@@ -1,6 +1,11 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { agentReadySite } from "./src/site/vitePlugin.ts";
+import { cgroupMaxWorkers } from "./vitest.workers.mjs";
+
+// One worker per CPU the cgroup may use (see vitest.workers.mjs); unset, and so
+// vitest's default, when nothing caps the CPU.
+const maxWorkers = cgroupMaxWorkers();
 
 export default defineConfig({
   plugins: [react(), agentReadySite()],
@@ -11,6 +16,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    ...(maxWorkers === undefined ? {} : { maxWorkers }),
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
