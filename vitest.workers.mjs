@@ -22,7 +22,7 @@ import { dirname } from "node:path";
  * @param {string} path - File to read.
  * @returns {string | undefined} Its contents.
  */
-function readOptional(path) {
+export function readOptional(path) {
   try {
     return readFileSync(path, "utf8");
   } catch {
@@ -33,12 +33,16 @@ function readOptional(path) {
 /**
  * The tightest CPU quota on this process's cgroup v2 path, in whole workers.
  *
- * @param {string} [root] - Where the cgroup v2 hierarchy is mounted.
+ * @param {object} [source] - Where the limit is read from; injectable for tests.
+ * @param {(path: string) => string | undefined} [source.read] - File reader
+ *   returning undefined for a missing file.
+ * @param {string} [source.root] - Where the cgroup v2 hierarchy is mounted.
  * @returns {number | undefined} Workers to run, or undefined (vitest's own
- *   default) when no quota applies: CI, an uncapped shell, cgroup v1, non-Linux.
+ *   default) when no usable quota applies: CI, an uncapped shell, cgroup v1,
+ *   non-Linux, or a cpu.max that does not parse.
  */
-export function cgroupMaxWorkers(root = "/sys/fs/cgroup") {
-  const membership = readOptional("/proc/self/cgroup")
+export function cgroupMaxWorkers({ read = readOptional, root = "/sys/fs/cgroup" } = {}) {
+  const membership = read("/proc/self/cgroup")
     ?.split("\n")
     .find((line) => line.startsWith("0::"));
   if (membership === undefined) {
@@ -47,7 +51,7 @@ export function cgroupMaxWorkers(root = "/sys/fs/cgroup") {
   let cpus = Infinity;
   // A quota on any ancestor slice limits us too, so take the smallest.
   for (let dir = membership.slice(3); ; dir = dirname(dir)) {
-    const [quota, period] = (readOptional(`${root}${dir}/cpu.max`) ?? "max").trim().split(" ");
+    const [quota, period] = (read(`${root}${dir}/cpu.max`) ?? "max").trim().split(" ");
     if (quota !== "max") {
       cpus = Math.min(cpus, Number(quota) / Number(period));
     }

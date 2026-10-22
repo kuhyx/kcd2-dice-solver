@@ -19,7 +19,9 @@ export default defineConfig({
     ...(maxWorkers === undefined ? {} : { maxWorkers }),
     coverage: {
       provider: "v8",
-      include: ["src/**/*.{ts,tsx}"],
+      // vitest.workers.mjs sits at the root because vite.config.ts imports it,
+      // but it is real logic and is tested like the rest.
+      include: ["src/**/*.{ts,tsx}", "vitest.workers.mjs"],
       // main.tsx is the DOM bootstrap and solver.worker.ts is the worker
       // entrypoint: both are pure wiring with no branches worth asserting, and
       // neither can run under jsdom without mocking away the thing under test.
