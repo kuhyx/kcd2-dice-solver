@@ -1,0 +1,50 @@
+/* The prerendered pages (src/site): the home page's no-JS content inside #root,
+   how-it-works and 404. Bundled into the app stylesheet so every page shares
+   the app's palette; the app replaces .prose on mount, so none of this touches
+   the solver's layout. */
+
+.prose {
+  max-width: 72ch;
+  margin: 0 auto;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+  line-height: 1.6;
+}
+
+.prose nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  color: var(--muted);
+}
+
+.prose h1 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: clamp(1.15rem, 4vw, 1.5rem);
+  color: var(--accent);
+}
+
+.prose h2 {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.prose .lead,
+.prose footer {
+  color: var(--muted);
+}
+
+.prose a {
+  color: var(--accent);
+}
+
+.prose table {
+  border-collapse: collapse;
+}
+
+.prose th,
+.prose td {
+  padding: 0.25rem 1rem 0.25rem 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}

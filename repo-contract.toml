@@ -1,0 +1,12 @@
+# Repo-contract settings, read by ~/src/utils/repo_contract.
+# [agent_ready]: this repo is a website and must pass the AgentReady
+# checker (~/src/utils/agent_ready). See repo_contract/web.py for keys.
+#
+# The check builds into dist.check/, never dist/: dist/ is bind-mounted live by
+# the kcd2-dice container and only deploy_build.sh may write it (a plain
+# `pnpm run build` empties it mid-request and ships the working tree).
+
+[agent_ready]
+dist = "dist.check"
+build = "pnpm exec tsc -b && pnpm exec vite build --outDir dist.check --emptyOutDir"
+install = "pnpm install --frozen-lockfile"

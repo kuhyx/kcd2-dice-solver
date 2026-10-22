@@ -4,3 +4,4 @@ dist.staging
 .deploy.lock
 coverage
 *.tsbuildinfo
+dist.check
